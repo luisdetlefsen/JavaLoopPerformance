@@ -1,6 +1,10 @@
 package loopperfcomparator;
 
-
+import java.awt.Desktop;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -9,6 +13,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -17,6 +23,8 @@ import java.util.stream.IntStream;
  * @author Luis Detlefsen <lgdetlef@gmail.com>
  */
 public class LoopPerfComparator {
+
+    static StringBuilder htmlResult = new StringBuilder();
 
     static Map<String, Long> perfTest(Integer threshold) {
 
@@ -28,8 +36,7 @@ public class LoopPerfComparator {
         Instant start = Instant.now();
         Integer sumTotal = 0;
 
-        
-        for(Integer i : intArray) {
+        for (Integer i : intArray) {
             sumTotal += i;
         }
         results.put("1#for(Integer i:intArray)|" + sumTotal, Duration.between(start, Instant.now()).toMillis());
@@ -80,20 +87,31 @@ public class LoopPerfComparator {
     public static void printTableRow(String s) {
         int i0 = s.indexOf('#');
         int i1 = s.indexOf('|');
-        int i2 = s.indexOf('@');        
-        System.out.println("<tr><td>" + s.substring(i0 + 1, i1) + "</td><td>" + s.substring(i2 + 1) + "ms</td></tr>");
+        int i2 = s.indexOf('@');
+        htmlResult.append("<tr><td>" + s.substring(i0 + 1, i1) + "</td><td>" + s.substring(i2 + 1) + "ms</td></tr>");
+        //System.out.println("<tr><td>" + s.substring(i0 + 1, i1) + "</td><td>" + s.substring(i2 + 1) + "ms</td></tr>");
     }
 
     public static void main(String args[]) {
         int threshold = 50_000_000;
-        
-        
+
         Map<String, Long> r = perfTest(threshold);
-        
+
         String title = "<h2>" + threshold + " iterations</h2>";
-        System.out.println("<html><body>" + title + "<table><tr><th>Loop</th><th>Time taken</th></tr></thead>");
+        htmlResult.append("<html><body>" + title + "<table><tr><th>Loop</th><th>Time taken</th></tr></thead>");
+        //System.out.println("<html><body>" + title + "<table><tr><th>Loop</th><th>Time taken</th></tr></thead>");
 
         r.keySet().stream().sorted().forEach(k -> printTableRow(k + "@" + r.get(k).toString()));
-        System.out.println("</table></body></html>");                
+        htmlResult.append("</table></body></html>");
+        System.out.println(htmlResult.toString());
+
+        try {
+            String fileLocation = "performanceComparison.html";
+            Files.write(Paths.get(fileLocation), htmlResult.toString().getBytes());
+            File htmlFile = new File(fileLocation);
+            Desktop.getDesktop().browse(htmlFile.toURI());            
+        } catch (IOException ex) {
+            Logger.getLogger(LoopPerfComparator.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 }
